@@ -73,6 +73,22 @@ function separarGrupos() {
     window._gruposSeparados = grupos;
 }
 
+function numToSuperLetra(n) {
+    // 0-9: '0'-'9', 10-35: 'A'-'Z', 36-61: 'a'-'z', 62+: combinações tipo ZA, ZB, ..., YA, YB, ...
+    if (n < 10) return n.toString();
+    if (n < 36) return String.fromCharCode(55 + n); // 10->A, ..., 35->Z
+    if (n < 62) return String.fromCharCode(61 + n); // 36->a, ..., 61->z
+    // Para 62+, faz pares de letras: ZA, ZB, ..., YA, YB, ...
+    let letras = [];
+    n -= 10; // Começa a partir de A
+    while (n >= 26) {
+        letras.unshift(String.fromCharCode(65 + (n % 26)));
+        n = Math.floor(n / 26) - 1;
+    }
+    letras.unshift(String.fromCharCode(65 + (n % 26)));
+    return letras.join('');
+}
+
 function compactarGrupos() {
     let grupos = window._gruposSeparados;
     if (!grupos || grupos.length === 0) {
@@ -84,7 +100,7 @@ function compactarGrupos() {
         }
         grupos = texto.split(',').map(g => g.trim()).filter(Boolean);
     }
-    const compactados = grupos.map(g => g[0] + g.length);
+    const compactados = grupos.map(g => g[0] + numToSuperLetra(g.length));
     document.getElementById("compactado").value = compactados.join(' ');
     window._compactados = compactados;
 }
