@@ -106,16 +106,12 @@ function agruparCompactados() {
         if (!mapa[g]) mapa[g] = [];
         mapa[g].push(idx);
     });
-    // Monta o resultado conforme solicitado
-    let resultado = [];
+    // Monta o resultado super compactado: grupo + todas as posições, tudo junto
+    let resultado = '';
     for (const grupo in mapa) {
-        if (mapa[grupo].length > 1) {
-            resultado.push(grupo + mapa[grupo].map(i => i).join(''));
-        } else {
-            resultado.push(grupo);
-        }
+        resultado += grupo + mapa[grupo].join('');
     }
-    document.getElementById("agrupado").value = resultado.join(' ');
+    document.getElementById("agrupado").value = resultado;
     window._agrupado = resultado;
 }
 
@@ -123,30 +119,39 @@ function reconstruir() {
     let agrupado = window._agrupado;
     if (!agrupado || agrupado.length === 0) {
         // Tenta obter do campo se não existir na memória
-        const texto = document.getElementById("agrupado").value.trim();
-        if (!texto) {
+        agrupado = document.getElementById("agrupado").value.trim();
+        if (!agrupado) {
             document.getElementById("reconstruido").value = "Agrupe os grupos primeiro.";
             return;
         }
-        agrupado = texto.split(' ').map(g => g.trim()).filter(Boolean);
     }
-    // Cria um array para armazenar os grupos nas posições corretas
+    // Parseia a string super compactada
     let posicoes = [];
-    agrupado.forEach(grupo => {
-        // Se o grupo tem mais de 2 caracteres, há posições extras
-        let valor = grupo[0];
-        let qtd = parseInt(grupo[1]);
-        let indices = [];
-        if (grupo.length > 2) {
-            indices = grupo.slice(2).split('').map(Number);
-        } else {
-            indices = [posicoes.length];
+    let i = 0;
+    while (i < agrupado.length) {
+        let valor = agrupado[i];
+        let qtd = parseInt(agrupado[i+1]);
+        i += 2;
+        // Pega as posições (dígitos) seguintes até encontrar um novo grupo (valor+qtd) ou fim
+        let indices = '';
+        while (i < agrupado.length && (agrupado[i] === '0' || agrupado[i] === '1' || isNaN(parseInt(agrupado[i-1])))) {
+            // Se o próximo caractere for um dígito de posição (0-9), adiciona
+            if (!isNaN(parseInt(agrupado[i]))) {
+                indices += agrupado[i];
+                i++;
+            } else {
+                break;
+            }
         }
-        indices.forEach(idx => {
+        // Se não houver posições, assume a próxima posição disponível
+        if (indices.length === 0) {
+            indices = posicoes.length.toString();
+        }
+        for (let j = 0; j < indices.length; j++) {
+            let idx = parseInt(indices[j]);
             posicoes[idx] = valor.repeat(qtd);
-        });
-    });
-    // Junta os grupos na ordem
+        }
+    }
     const binario = posicoes.join('');
     document.getElementById("reconstruido").value = binario;
 }
