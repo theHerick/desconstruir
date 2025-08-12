@@ -2,162 +2,82 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Imagem → Binário</title>
+<title>Compactador Binário Avançado</title>
 <style>
     body { font-family: Arial; background: #f0f0f0; padding: 20px; }
-    input, textarea, button { margin-top: 10px; }
-    textarea { width: 100%; height: 200px; font-family: monospace; }
+    textarea { width: 100%; height: 100px; font-family: monospace; }
+    button { margin: 10px 0; }
 </style>
 </head>
 <body>
-
-<h2>Converter Imagem para Binário (010101...)</h2>
-<input type="file" id="inputImagem" accept="image/*"><br>
-<textarea id="saida" placeholder="O binário aparecerá aqui..."></textarea><br>
-<button onclick="separarGrupos()">Separar Grupos</button><br>
-<textarea id="grupos" placeholder="Os grupos aparecerão aqui..."></textarea><br>
-<button onclick="compactarGrupos()">Compactar Grupos</button><br>
-<textarea id="compactado" placeholder="O resultado compactado aparecerá aqui..."></textarea><br>
-<button onclick="agruparCompactados()">Agrupar Iguais</button><br>
-<textarea id="agrupado" placeholder="O agrupamento aparecerá aqui..."></textarea><br>
-<button onclick="reconstruir()">Reconstruir Binário</button><br>
-<textarea id="reconstruido" placeholder="O binário reconstruído aparecerá aqui..."></textarea><br>
-<button onclick="copiar()">Copiar Binário</button>
+<h2>Compactador Binário Avançado (0A[...], 1B[...])</h2>
+<textarea id="entrada" placeholder="Cole o binário aqui..."></textarea><br>
+<button onclick="compactarAvancado()">Compactar</button>
+<textarea id="compactado" placeholder="Compactado..."></textarea><br>
+<button onclick="reconstruirAvancado()">Reconstruir</button>
+<textarea id="reconstruido" placeholder="Reconstruído..."></textarea>
 
 <script>
-document.getElementById("inputImagem").addEventListener("change", function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const arrayBuffer = event.target.result;
-        const bytes = new Uint8Array(arrayBuffer);
-
-        let binario = '';
-        for (let i = 0; i < bytes.length; i++) {
-            binario += bytes[i].toString(2).padStart(8, '0');
-        }
-
-        document.getElementById("saida").value = binario;
-    };
-    reader.readAsArrayBuffer(file);
-});
-
-function copiar() {
-    const textarea = document.getElementById("saida");
-    textarea.select();
-    document.execCommand("copy");
-    alert("Binário copiado!");
+function numToLetra(n) {
+    if (n < 10) return n.toString();
+    return String.fromCharCode(55 + n); // 10->A, 11->B, ..., 35->Z
+}
+function letraToNum(l) {
+    if (!isNaN(l)) return parseInt(l);
+    return l.charCodeAt(0) - 55;
 }
 
-function separarGrupos() {
-    const binario = document.getElementById("saida").value.trim();
-    if (!binario) {
-        document.getElementById("grupos").value = "Cole ou gere o binário primeiro.";
-        return;
-    }
+function compactarAvancado() {
+    const bin = document.getElementById("entrada").value.trim();
+    if (!bin) return;
     let grupos = [];
-    let atual = '';
-    for (let i = 0; i < binario.length; i++) {
-        if (atual === '' || binario[i] === atual[0]) {
-            atual += binario[i];
+    let atual = bin[0];
+    let cont = 1;
+    for (let i = 1; i <= bin.length; i++) {
+        if (bin[i] === atual) {
+            cont++;
         } else {
-            grupos.push(atual);
-            atual = binario[i];
+            grupos.push({bit: atual, qtd: cont});
+            atual = bin[i];
+            cont = 1;
         }
     }
-    if (atual !== '') grupos.push(atual);
-    document.getElementById("grupos").value = grupos.join(', ');
-    // Salva os grupos para uso posterior
-    window._gruposSeparados = grupos;
-}
-
-function compactarGrupos() {
-    let grupos = window._gruposSeparados;
-    if (!grupos || grupos.length === 0) {
-        // Tenta obter dos campos se não existir na memória
-        const texto = document.getElementById("grupos").value.trim();
-        if (!texto) {
-            document.getElementById("compactado").value = "Separe os grupos primeiro.";
-            return;
-        }
-        grupos = texto.split(',').map(g => g.trim()).filter(Boolean);
-    }
-    const compactados = grupos.map(g => g[0] + g.length);
-    document.getElementById("compactado").value = compactados.join(' ');
-    window._compactados = compactados;
-}
-
-function agruparCompactados() {
-    let compactados = window._compactados;
-    if (!compactados || compactados.length === 0) {
-        // Tenta obter dos campos se não existir na memória
-        const texto = document.getElementById("compactado").value.trim();
-        if (!texto) {
-            document.getElementById("agrupado").value = "Compacte os grupos primeiro.";
-            return;
-        }
-        compactados = texto.split(' ').map(g => g.trim()).filter(Boolean);
-    }
-    // Mapeia cada grupo para suas posições
-    const mapa = {};
-    compactados.forEach((g, idx) => {
-        if (!mapa[g]) mapa[g] = [];
-        mapa[g].push(idx);
+    // Agrupa iguais
+    let mapa = {};
+    grupos.forEach((g, idx) => {
+        let chave = g.bit + numToLetra(g.qtd);
+        if (!mapa[chave]) mapa[chave] = [];
+        mapa[chave].push(idx);
     });
-    // Monta o resultado super compactado: grupo + todas as posições, tudo junto
-    let resultado = '';
-    for (const grupo in mapa) {
-        resultado += grupo + mapa[grupo].join('');
-    }
-    document.getElementById("agrupado").value = resultado;
-    window._agrupado = resultado;
-}
-
-function reconstruir() {
-    let agrupado = window._agrupado;
-    if (!agrupado || agrupado.length === 0) {
-        // Tenta obter do campo se não existir na memória
-        agrupado = document.getElementById("agrupado").value.trim();
-        if (!agrupado) {
-            document.getElementById("reconstruido").value = "Agrupe os grupos primeiro.";
-            return;
+    let resultado = [];
+    for (let chave in mapa) {
+        if (mapa[chave].length > 1) {
+            resultado.push(chave + '[' + mapa[chave].join(',') + ']');
+        } else {
+            resultado.push(chave + '[' + mapa[chave][0] + ']');
         }
     }
-    // Parseia a string super compactada
+    document.getElementById("compactado").value = resultado.join(' ');
+}
+
+function reconstruirAvancado() {
+    const comp = document.getElementById("compactado").value.trim();
+    if (!comp) return;
+    let grupos = comp.match(/([01][0-9A-Z])\[([0-9,]+)\]/g);
+    if (!grupos) return;
     let posicoes = [];
-    let i = 0;
-    while (i < agrupado.length) {
-        let valor = agrupado[i];
-        let qtd = parseInt(agrupado[i+1]);
-        i += 2;
-        // Pega as posições (dígitos) seguintes até encontrar um novo grupo (valor+qtd) ou fim
-        let indices = '';
-        while (i < agrupado.length && (agrupado[i] === '0' || agrupado[i] === '1' || isNaN(parseInt(agrupado[i-1])))) {
-            // Se o próximo caractere for um dígito de posição (0-9), adiciona
-            if (!isNaN(parseInt(agrupado[i]))) {
-                indices += agrupado[i];
-                i++;
-            } else {
-                break;
-            }
-        }
-        // Se não houver posições, assume a próxima posição disponível
-        if (indices.length === 0) {
-            indices = posicoes.length.toString();
-        }
-        for (let j = 0; j < indices.length; j++) {
-            let idx = parseInt(indices[j]);
-            posicoes[idx] = valor.repeat(qtd);
-        }
-    }
-    const binario = posicoes.join('');
-    document.getElementById("reconstruido").value = binario;
+    grupos.forEach(gr => {
+        let m = gr.match(/([01])([0-9A-Z])\[([0-9,]+)\]/);
+        if (!m) return;
+        let bit = m[1];
+        let qtd = letraToNum(m[2]);
+        let indices = m[3].split(',').map(Number);
+        indices.forEach(idx => {
+            posicoes[idx] = bit.repeat(qtd);
+        });
+    });
+    document.getElementById("reconstruido").value = posicoes.join('');
 }
 </script>
-
-</script>
-
 </body>
 </html>
