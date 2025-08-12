@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Imagem → Binário</title>
+<style>
+    body { font-family: Arial; background: #f0f0f0; padding: 20px; }
+    input, textarea, button { margin-top: 10px; }
+    textarea { width: 100%; height: 200px; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<h2>Converter Imagem para Binário (010101...)</h2>
+<input type="file" id="inputImagem" accept="image/*"><br>
+<textarea id="saida" placeholder="O binário aparecerá aqui..."></textarea><br>
+<button onclick="copiar()">Copiar Binário</button>
+
+<script>
+document.getElementById("inputImagem").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const arrayBuffer = event.target.result;
+        const bytes = new Uint8Array(arrayBuffer);
+
+        let binario = '';
+        for (let i = 0; i < bytes.length; i++) {
+            binario += bytes[i].toString(2).padStart(8, '0');
+        }
+
+        document.getElementById("saida").value = binario;
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+function copiar() {
+    const textarea = document.getElementById("saida");
+    textarea.select();
+    document.execCommand("copy");
+    alert("Binário copiado!");
+}
+</script>
+
+</body>
+</html>
